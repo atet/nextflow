@@ -17,6 +17,7 @@ Excluding time to download and processing your animation, _**you will be able to
 * [2. Installation](#2-installation)
 * [3. Basic Examples](#3-basic-examples)
 * [4. Mixed Programming Language Examples](#4-mixed-programming-language-examples)
+* [5. External Scripts Examples](#5-external-scripts-examples)
 
 ### Supplemental
 
@@ -316,6 +317,103 @@ Hola mundo!
 ```
 
 Congratulations! You got to use two entirely different programming languages in your Nextflow pipeline. Though we just used Perl and Python, the sky is the limit and virtually any programming language could be leveraged here.
+
+[Back to Top](#table-of-contents)
+
+----------------------------------------------------------------------------
+
+## 5. External Scripts Examples
+
+ As your pipelines get larger, know that there is a [Nextflow filesize limit of 64 KiB](https://www.nextflow.io/docs/latest/script.html#:~:text=Nextflow%20scripts%20have%20a%20maximum,and%20including%20them%20as%20modules.). Given this, let's save out the Perl and Python scripts as external files that your new `hello4.nf` file will call upon.
+
+5.1. Create a new file called `perlTask.pl` in your home directory and copy/paste the code below to the newly created file:
+
+```bash
+$ cd ~ && nano perlTask.pl
+
+#!/usr/bin/perl
+
+print $ARGV[0] . ' ' . $ARGV[1];
+```
+
+5.2. Create a new file called `pyTask.py` in your home directory and copy/paste the code below to the newly created file:
+
+```bash
+$ cd ~ && nano pyTask.py
+
+#!/usr/bin/env python3
+import sys
+
+print(sys.argv[1] + "!")
+```
+
+5.3. Create a new file called `hello4.nf` in your home directory and copy/paste the code below to the newly created file:
+
+```bash
+$ cd ~ && nano hello4.nf
+
+#!/usr/bin/env nextflow
+
+ch1 = Channel.of('Bonjour', 'Ciao', 'Hello', 'Hola')
+ch2 = Channel.of('le monde', 'mondo', 'world', 'mundo')
+
+process perlTask {
+   fair true
+   input:
+      val x
+      val y
+   output:
+      stdout
+   script:
+      """
+      perl ~/perlTask.pl "$x" "$y"
+      """
+}
+
+process pyTask {
+   fair true
+   input:
+      val z
+   output:
+      stdout
+   script:
+      """
+      python3 ~/pyTask.py "$z"
+      """
+}
+
+workflow {
+   strings = perlTask(ch1, ch2)
+   sentences = pyTask(strings)
+   sentences.view()
+}
+```
+Changes include:
+- breaking out `perlTask` and `pyTask` processes to external `perlTask.pl` and `pyTask.py` scripts
+- adapting the external scripts to accept external arguments
+- executing the external scripts from the Nextflow code
+
+5.4. Run your new local `hello4.nf` script:
+
+```bash
+$ nextflow run hello4.nf
+
+N E X T F L O W  ~  version 23.10.1
+Launching `hello4.nf` [admiring_kirch] DSL2 - revision: ab947f4633
+executor >  local (8)
+[7a/658cbe] process > perlTask (2) [100%] 4 of 4 ✔
+[42/22fc19] process > pyTask (3)   [100%] 4 of 4 ✔
+Bonjour le monde!
+
+Ciao mondo!
+
+Hello world!
+
+Hola mundo!
+
+```
+
+Congratulations! Not only have you learned how to use different programming languages and pipeline them together within Nextflow, but you also saw how you can break out processes into external script files too.
 
 [Back to Top](#table-of-contents)
 
