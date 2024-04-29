@@ -15,7 +15,8 @@ Excluding time to download and processing your animation, _**you will be able to
 * [0. Requirements](#0-requirements)
 * [1. Introduction](#1-introduction)
 * [2. Installation](#2-installation)
-* [3. Basic Example](#3-basic-example)
+* [3. Basic Examples](#3-basic-examples)
+* [4. Mixed Programming Language Examples](#4-mixed-programming-language-examples)
 
 ### Supplemental
 
@@ -152,13 +153,13 @@ workflow {
 }
 ```
 
-We have a single process called `sayHello` that will:
+We have a single **process** called `sayHello` that will:
 - take an input string `x`
 - drops it into a shell command
 - that prepends it to `world!`
 - and outputs to the next step
 
-We have a single workflow (unnamed) that:
+We have a single **workflow** (unnamed) that:
 - takes a data struture (i.e., `Channel.of`) with strings (`Bonjour`, etc.)
 - uses those strings as input into the `sayHello` process
 - and outputs all the appended text to the console
@@ -198,7 +199,7 @@ workflow {
 ```
 
 Changes above include:
-- moving channel data up to the top as a global variable
+- moving **channel** data up to the top as a global variable
 - adding another channel (i.e., `ch2`) of the word "world" in the different languages
 - using "`fair true`" to indicate that the strings must be executed in order 
 - including another input for `sayHello` process as `val y`
@@ -221,6 +222,100 @@ Hola mundo!
 ```
 
 Congratulations! You learned about how to create workflow scripts locally, make changes (data, input, and output), and run the pipeline locally on your computer.
+
+[Back to Top](#table-of-contents)
+
+----------------------------------------------------------------------------
+
+## 4. Mixed Programming Language Examples
+
+We will now make some further edits to `hello2.nf` to leverage external scripts that will be in different programming languages. Don't worry though, no need to know these other programming languages, just **copy and paste**!
+
+If you are using WSL2 like me, you should already have Python programming language installed:
+
+```bash
+$ python3 --version
+
+Python 3.10.12
+```
+
+4.1. Create a new file called `hello3.nf` in your home directory:
+
+```bash
+$ cd ~ && nano hello3.nf
+```
+
+4.2. Copy and paste the below to the newly created file and press `CTRL+o`, `<ENTER>`, and `CTRL+x` to save and exit:
+
+```bash
+#!/usr/bin/env nextflow
+
+ch1 = Channel.of('Bonjour', 'Ciao', 'Hello', 'Hola')
+ch2 = Channel.of('le monde', 'mondo', 'world', 'mundo')
+
+process perlTask {
+   fair true
+   input:
+      val x
+      val y
+   output:
+      stdout
+   script:
+      """
+      #!/usr/bin/perl
+
+      print '$x' . ' ' . '$y';
+      """
+}
+
+process pyTask {
+   fair true
+   input:
+      val z
+   output:
+      stdout
+   script:
+      """
+      #!/usr/bin/env python3
+
+      print("$z" + "!")
+      """
+}
+
+workflow {
+   strings = perlTask(ch1, ch2)
+   sentences = pyTask(strings)
+   sentences.view()
+}
+```
+
+Changes above include:
+- using two processes that are dependent on each other
+- starts with `perlTask` (in Perl language) combining words from `ch1` and `ch2`
+- ends with `pyTask` (in Python language) taking `perlTask` output and adding an exclamation point
+- crafting the workflow like traditional programming instead of piping and/or nesting processes
+
+4.3. Run your new local `hello3.nf` script:
+
+```bash
+$ nextflow run hello3.nf
+
+N E X T F L O W  ~  version 23.10.1
+Launching `hello3.nf` [big_shaw] DSL2 - revision: 2ce38ab8a5
+executor >  local (8)
+[f6/7d0c2c] process > perlTask (1) [100%] 4 of 4 ✔
+[6e/39d326] process > pyTask (4)   [100%] 4 of 4 ✔
+Bonjour le monde!
+
+Ciao mondo!
+
+Hello world!
+
+Hola mundo!
+
+```
+
+Congratulations! You got to use two entirely different programming languages in your Nextflow pipeline. Though we just used Perl and Python, the sky is the limit and virtually any programming language could be leveraged here.
 
 [Back to Top](#table-of-contents)
 
