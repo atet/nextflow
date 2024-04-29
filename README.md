@@ -15,6 +15,7 @@ Excluding time to download and processing your animation, _**you will be able to
 * [0. Requirements](#0-requirements)
 * [1. Introduction](#1-introduction)
 * [2. Installation](#2-installation)
+* [3. Basic Example](#3-basic-example)
 
 ### Supplemental
 
@@ -39,7 +40,7 @@ Nextflow is used to create easily shareable, reproducible, and scalable pipeline
 
 Though Nextflow has been released as an open-source project since 2013, it hasn't been until almost 2020 when the community hit critical mass with improved documentation, training materials, and unified community to share knowledge.
 
-Before we get started, a big caveat is that as of Nextflow version 22.12.0  in December 2022, their **domain specific language version 1 (DSL1) is no longer supported**. So years of scripts you may find on the internet made in DSL1 will not work in recent versions of Nextflow and **you must use version 2 (DSL2)**. The pipeline script used here will be in DSL2.
+Before we get started, a big caveat is that as of Nextflow version `22.12.0` in December 2022, their **domain specific language version 1 (DSL1) is no longer supported**. So years of scripts you may find on the internet made in DSL1 will not work in recent versions of Nextflow and **you must use version 2 (DSL2)**. The pipeline script used here will be in DSL2.
 
 Though Nextflow can easily scale to containerized ecosystems that may be spread across large compute clusters in your local data center or on the cloud, this introductory pipeline will simply execute locally on your computer.
 
@@ -48,6 +49,8 @@ Though Nextflow can easily scale to containerized ecosystems that may be spread 
 ----------------------------------------------------------------------------
 
 ## 2. Installation
+
+We will install the Java dependency, the Nextflow program, and run an example script to ensure the installation was successful:
 
 2.1. Install latest Java version (as of 20240428) and confirm installation:
 
@@ -100,7 +103,7 @@ $ nextflow -version
    http://nextflow.io
 ```
 
-2.7. Test installation with the "Hello World!" Nextflow pipeline:
+2.7. Test installation with the "Hello World!" Nextflow pipeline (you must be connected to the internet as Nextflow will download this script from their GitHub):
 
 ```bash
 $ nextflow run hello
@@ -121,6 +124,103 @@ Ciao world!
 ```
 
 Congratulations! If you saw similar output on the last step (words may be in different order), Nextflow is installed and working correctly on your computer.
+
+[Back to Top](#table-of-contents)
+
+----------------------------------------------------------------------------
+
+## 3. Basic Examples
+
+Let's inspect the "Hello World!" pipeline that we ran in the previous step (you can find this code on Nextflow's GitHub at https://github.com/nextflow-io/hello/blob/master/main.nf):
+
+```bash
+#!/usr/bin/env nextflow
+
+process sayHello {
+  input: 
+    val x
+  output:
+    stdout
+  script:
+    """
+    echo '$x world!'
+    """
+}
+
+workflow {
+  Channel.of('Bonjour', 'Ciao', 'Hello', 'Hola') | sayHello | view
+}
+```
+
+We have a single process called `sayHello` that will:
+- take an input string `x`
+- drops it into a shell command
+- that prepends it to `world!`
+- and outputs to the next step
+
+We have a single workflow (unnamed) that:
+- takes a data struture (i.e., `Channel.of`) with strings (`Bonjour`, etc.)
+- uses those strings as input into the `sayHello` process
+- and outputs all the appended text to the console
+
+Now let us make some simple modifications to this script, save it locally on your computer, and run it:
+
+3.1. Create a new file called `hello2.nf` in your home directory:
+
+```bash
+$ cd ~ && nano hello2.nf
+```
+
+3.2. Copy and paste the below to the newly created file and press `CTRL+o`, `<ENTER>`, and `CTRL+x` to save and exit:
+
+```bash
+#!/usr/bin/env nextflow
+
+ch1 = Channel.of('Bonjour', 'Ciao', 'Hello', 'Hola')
+ch2 = Channel.of('le monde!', 'mondo!', 'world!', 'mundo!')
+
+process sayHello {
+   fair true
+   input: 
+      val x
+      val y
+   output:
+      stdout
+   script:
+      """
+      echo -n '$x $y'
+      """
+}
+
+workflow {
+   sayHello(ch1, ch2).view()
+}
+```
+
+Changes above include:
+- moving channel data up to the top as a global variable
+- adding another channel (i.e., `ch2`) of the word "world" in the different languages
+- using "`fair true`" to indicate that the strings must be executed in order 
+- including another input for `sayHello` process as `val y`
+- changing the `echo` output script to concatenate `x` and `y` (n.b., the '`-n`' flag is necessary to ensure the '`!`' is properly escaped)
+- removing the pipe workflow (i.e., not using '`|`' format)
+
+3.3. Run your new local `hello2.nf` script:
+
+```bash
+$ nextflow run hello2.nf
+
+N E X T F L O W  ~  version 23.10.1
+Launching `hello2.nf` [berserk_archimedes] DSL2 - revision: 44203c7d6e
+executor >  local (4)
+[db/5f5f97] process > sayHello (1) [100%] 4 of 4 ✔
+Bonjour le monde!
+Ciao mondo!
+Hello world!
+Hola mundo!
+```
+
+Congratulations! You learned about how to create workflow scripts locally, make changes (data, input, and output), and run the pipeline locally on your computer.
 
 [Back to Top](#table-of-contents)
 
