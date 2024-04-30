@@ -569,6 +569,92 @@ Congratulations! You learned about how processing could happen within Nextflow's
 
 ----------------------------------------------------------------------------
 
+# 7. Scaling Compute
+
+Nextflow has made it easy to run workflows on high-performance compute clusters, whether in your lab or on the cloud. Here, we'll adapt `stress_parallel.nf` to run on many more threads in parallel and toss it on Docker to distribute the processing.
+
+7.1. Create a new file called `stress_parallel2.nf` in your home directory and copy/paste the code below to the newly created file:
+
+```bash
+$ cd ~ && nano stress_parallel2.nf
+
+#!/usr/bin/env nextflow
+
+duration_sec = Channel.of(7,8,9,10,11,12,13,14)
+
+process pyTask {
+   input:
+      val x
+   output:
+      stdout
+   script:
+      """
+      python3 ~/pyStress.py "$x"
+      """
+}
+
+workflow {
+   pyTask(duration_sec).view()
+}
+```
+
+Changes include:
+- a single data structure to be passed that has multiple values, 7 to 14 seconds
+- removing redundant process
+- restructuring the workflow so that a single process uses multiple values as input
+
+7.2. Run your new local `stress_parallel.nf` script:
+
+```bash
+$ nextflow run stress_parallel2.nf
+
+N E X T F L O W  ~  version 23.10.1
+Launching `stress_parallel2.nf` [nostalgic_lagrange] DSL2 - revision: 85db1b29ff
+executor >  local (8)
+[1c/50e047] process > pyTask (8) [100%] 8 of 8 ✔
+7
+
+8
+
+9
+
+10
+
+11
+
+12
+
+13
+
+14
+
+```
+
+Looks like this only took about 14 seconds to complete instead of 7 + 8 + 9 + 10 + 11 + 12 + 13 + 14 = 84 seconds. Let's try running this on Docker, as depending on your setup and needs, Docker provides you with isolated (a.k.a., "containerized") operating systems that could be spread across multiple computers for more compute performance.
+
+NOTE: Docker can be installed on WSL2, instructions here: https://github.com/atet/wsl?tab=readme-ov-file#4-cli-docker
+
+7.3. Create a new file called `Dockerfile` in your home directory and copy/paste the code below to the newly created file:
+
+```bash
+$ cd ~ && nano Dockerfile
+
+FROM alpine:latest
+RUN apk update && apk add --no-cache bash python3 && ln -sf python3 /usr/bin/python
+ENTRYPOINT ["/bin/bash"]
+```
+What's going on?:
+- We will build from an existing Docker image, `alpine:latest`
+- Bash and Python will be installed (needed by Nextflow)
+- Python environmental variable for `python3` will be set up
+- [Entrypoint set to `/bin/bash`](https://www.nextflow.io/docs/latest/container.html#:~:text=When%20creating%20a%20container%20image,should%20be%20the%20container%20entrypoint.) with [flags](https://stackoverflow.com/a/62313159) (*this is important!*)
+
+TODO: FINISH DOCKER SECTION
+
+[Back to Top](#table-of-contents)
+
+----------------------------------------------------------------------------
+
 ## Other Resources
 
 **Description** | **URL Link**
