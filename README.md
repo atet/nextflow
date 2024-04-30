@@ -470,6 +470,8 @@ process pyTask1 {
 process pyTask2 {
    input:
       val x
+   output:
+      stdout
    script:
       """
       python3 ~/pyStress.py "$x"
@@ -478,13 +480,14 @@ process pyTask2 {
 
 workflow {
    duration_sec_2 = pyTask1(duration_sec_1)
-   pyTask2(duration_sec_2)
+   pyTask2(duration_sec_2).view()
 }
 ```
 
 What's going on here?:
 - We are running two processes sequentially because `pyTask2` depends on data from `pyTask1`
-- This should take 5 + 5 = 10 seconds to run
+- View the output from `pyTask2`
+- This should take about 5 + 5 = 10 seconds to run
 
 6.3. Run your new local `stress_sequential.nf` script:
 
@@ -492,13 +495,14 @@ What's going on here?:
 $ nextflow run stress_sequential.nf
 
 N E X T F L O W  ~  version 23.10.1
-Launching `stress_sequential.nf` [cheeky_torricelli] DSL2 - revision: e8a952714e
+Launching `stress_sequential.nf` [small_tesla] DSL2 - revision: 6deb89ed42
 executor >  local (2)
-[e4/372c4c] process > pyTask1 [100%] 1 of 1 ✔
-[9d/ca44ac] process > pyTask2 [100%] 1 of 1 ✔
+[d3/4d96ee] process > pyTask1 [100%] 1 of 1 ✔
+[2c/f96597] process > pyTask2 [100%] 1 of 1 ✔
+5
 ```
 
-If you think about it, we actaully didn't need information from `pyTask1` for `pyTask2` to process. If we had at least 2 CPU threads, could we have run them both in parallel to save time? Let's find out...
+If you think about it, we actaully didn't need any information from `pyTask1` for `pyTask2` to process. If we had at least 2 CPU threads, could we have run them both in parallel to save time? Let's find out...
 
 6.4. Create a new file called `stress_parallel.nf` in your home directory and copy/paste the code below to the newly created file:
 
@@ -512,6 +516,8 @@ duration_sec = Channel.value(5)
 process pyTask1 {
    input:
       val x
+   output:
+      stdout
    script:
       """
       python3 ~/pyStress.py "$x"
@@ -521,6 +527,8 @@ process pyTask1 {
 process pyTask2 {
    input:
       val x
+   output:
+      stdout
    script:
       """
       python3 ~/pyStress.py "$x"
@@ -528,15 +536,15 @@ process pyTask2 {
 }
 
 workflow {
-   pyTask1(duration_sec)
-   pyTask2(duration_sec)
+   pyTask1(duration_sec).view()
+   pyTask2(duration_sec).view()
 }
 ```
 
 Changes include:
-- only having a single piece of data to be passed to each process, `duration_sec`
-- removing `output` from `pyTask1`
+- passing same data to each process independently
 - restructuring the workflow so that `pyTask2` is not dependent on `pyTask1` for data
+- viewing output from each process
 
 6.5. Run your new local `stress_parallel.nf` script:
 
@@ -544,10 +552,13 @@ Changes include:
 $ nextflow run stress_parallel.nf
 
 N E X T F L O W  ~  version 23.10.1
-Launching `stress_parallel.nf` [serene_cori] DSL2 - revision: 41d96aba89
+Launching `stress_parallel.nf` [hopeful_wozniak] DSL2 - revision: 2a8c9e8d07
 executor >  local (2)
-[12/4ad6f6] process > pyTask1 [100%] 1 of 1 ✔
-[e9/a5d324] process > pyTask2 [100%] 1 of 1 ✔
+[6f/679804] process > pyTask1 [100%] 1 of 1 ✔
+[ff/f268f1] process > pyTask2 [100%] 1 of 1 ✔
+5
+
+5
 ```
 
 If you paid attention to the console, you would've seen that `pyTask1` and `pyTask2` were processing concurrently and that this workflow finished in about half the time compared to running this sequentially before.
