@@ -18,6 +18,7 @@ Excluding time to download and processing your animation, _**you will be able to
 * [3. Basic Examples](#3-basic-examples)
 * [4. Mixed Programming Language Examples](#4-mixed-programming-language-examples)
 * [5. External Scripts Examples](#5-external-scripts-examples)
+* [6. Performance Testing](#6-performance-testing)
 
 ### Supplemental
 
@@ -414,6 +415,144 @@ Hola mundo!
 ```
 
 Congratulations! Not only have you learned how to use different programming languages and pipeline them together within Nextflow, but you also saw how you can break out processes into external script files too.
+
+[Back to Top](#table-of-contents)
+
+----------------------------------------------------------------------------
+
+## 6. Performance Testing
+
+We will explore how Nextflow distributes work to processes, whether it's sequential or in parallel. For example, if you are processing multiple pieces of data that don't depend on one another, instead of running one piece at a time sequentially, you could possibly run everything in a parallel fashion (a.k.a., multithreading) to save some time.
+
+6.1. Create a new file called `pyStress.py` in your home directory and copy/paste the code below to the newly created file:
+
+```bash
+$ cd ~ && nano pyStress.py
+
+#!/usr/bin/env python3
+import time, sys, random
+
+time_start = time.time()
+duration_sec = int(sys.argv[1])
+
+while int(time.time()) < (time_start + duration_sec):
+    random.randrange(9223372036854775807)
+
+print(duration_sec)
+```
+
+What's going on here?:
+- This python script will take a number as an argument
+- That number will represent how many seconds the loop runs
+- The loop will generate random numbers
+- Causes a single CPU thread (not the entire CPU) to work hard for specified time
+
+6.2. Create a new file called `stress_sequential.nf` in your home directory and copy/paste the code below to the newly created file:
+
+```bash
+$ cd ~ && nano stress_sequential.nf
+
+#!/usr/bin/env nextflow
+
+duration_sec_1 = Channel.value(5)
+
+process pyTask1 {
+   input:
+      val x
+   output:
+      stdout
+   script:
+      """
+      python3 ~/pyStress.py "$x"
+      """
+}
+
+process pyTask2 {
+   input:
+      val x
+   script:
+      """
+      python3 ~/pyStress.py "$x"
+      """
+}
+
+workflow {
+   duration_sec_2 = pyTask1(duration_sec_1)
+   pyTask2(duration_sec_2)
+}
+```
+
+What's going on here?:
+- We are running two processes sequentially because `pyTask2` depends on data from `pyTask1`
+- This should take 5 + 5 = 10 seconds to run
+
+6.3. Run your new local `stress_sequential.nf` script:
+
+```bash
+$ nextflow run stress_sequential.nf
+
+N E X T F L O W  ~  version 23.10.1
+Launching `stress_sequential.nf` [cheeky_torricelli] DSL2 - revision: e8a952714e
+executor >  local (2)
+[e4/372c4c] process > pyTask1 [100%] 1 of 1 ✔
+[9d/ca44ac] process > pyTask2 [100%] 1 of 1 ✔
+```
+
+If you think about it, we actaully didn't need information from `pyTask1` for `pyTask2` to process. If we had at least 2 CPU threads, could we have run them both in parallel to save time? Let's find out...
+
+6.4. Create a new file called `stress_parallel.nf` in your home directory and copy/paste the code below to the newly created file:
+
+```bash
+$ cd ~ && nano stress_parallel.nf
+
+#!/usr/bin/env nextflow
+
+duration_sec = Channel.value(5)
+
+process pyTask1 {
+   input:
+      val x
+   script:
+      """
+      python3 ~/pyStress.py "$x"
+      """
+}
+
+process pyTask2 {
+   input:
+      val x
+   script:
+      """
+      python3 ~/pyStress.py "$x"
+      """
+}
+
+workflow {
+   pyTask1(duration_sec)
+   pyTask2(duration_sec)
+}
+```
+
+Changes include:
+- only having a single piece of data to be passed to each process, `duration_sec`
+- removing `output` from `pyTask1`
+- restructuring the workflow so that `pyTask2` is not dependent on `pyTask1` for data
+
+6.5. Run your new local `stress_parallel.nf` script:
+
+```bash
+$ nextflow run stress_parallel.nf
+
+N E X T F L O W  ~  version 23.10.1
+Launching `stress_parallel.nf` [serene_cori] DSL2 - revision: 41d96aba89
+executor >  local (2)
+[12/4ad6f6] process > pyTask1 [100%] 1 of 1 ✔
+[e9/a5d324] process > pyTask2 [100%] 1 of 1 ✔
+```
+
+If you paid attention to the console, you would've seen that `pyTask1` and `pyTask2` were processing concurrently and that this workflow finished in about half the time compared to running this sequentially before.
+
+Congratulations! You learned about how processing could happen within Nextflow's workflows; whether it happens sequentially because processes depend on each other or in parallel when they don't. Depending on the workflow, you might actually have a mix of both of these types of processing.
 
 [Back to Top](#table-of-contents)
 
