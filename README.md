@@ -19,6 +19,8 @@ Excluding time to download and processing your animation, _**you will be able to
 * [4. Mixed Programming Language Examples](#4-mixed-programming-language-examples)
 * [5. External Scripts Examples](#5-external-scripts-examples)
 * [6. Performance Testing](#6-performance-testing)
+* [7. Scaling Compute](#7-scaling-compute)
+* [8. Next Steps](#8-next-steps)
 
 ### Supplemental
 
@@ -655,14 +657,40 @@ TODO: FINISH DOCKER SECTION
 
 ----------------------------------------------------------------------------
 
+## 8. Next Steps
+
+Dive in deeper with a comprehensive review of Nextflow at [The Carpentries](https://carpentries-incubator.github.io/workflows-nextflow/01-getting-started-with-nextflow.html).
+
+Collaborate on community-driven workflows at [nf-core](https://nf-co.re/). You can also install their tools locally for quick access:
+
+```bash
+$ pip install nf-core
+.
+.
+.
+$ nf-core --help
+
+                                          ,--./,-.
+          ___     __   __   __   ___     /,-._.--~\
+    |\ | |__  __ /  ` /  \ |__) |__         }  {
+    | \| |       \__, \__/ |  \ |___     \`-._,-`-,
+                                          `._,._,'
+
+    nf-core/tools version 2.13.1 - https://nf-co.re
+```
+
+[Back to Top](#table-of-contents)
+
+----------------------------------------------------------------------------
+
 ## Other Resources
 
 **Description** | **URL Link**
 --- | ---
 Github for Nextflow | https://github.com/nextflow-io/nextflow
 Installing Windows Subsystem for Linux 2 on Windows 10 | https://github.com/atet/wsl
-Community-created Nextflow pipelines | https://nf-co.re
 Converting scripts from DSL1 to DSL2 | https://www.nextflow.io/docs/latest/dsl1.html
+Community-created Nextflow pipelines | https://nf-co.re
 
 [Back to Top](#table-of-contents)
 
@@ -674,6 +702,7 @@ Issue | Solution
 --- | ---
 **"It's not working!"** | This concise tutorial has distilled hours of sweat, tears, and troubleshooting; _it can't not work_
 **"Pipeline is crashing due to some '*DSL1*' nonsense!"** | If you have a more current version of Nextflow (after 2022), it cannot run DSL1 scripts and you must [convert your scripts to DSL2](https://www.nextflow.io/docs/latest/dsl1.html)
+**"Docker is driving me nuts!"** | You and me both, there's quite a lot to know to get it working correctly with Nextflow
 
 [Back to Top](#table-of-contents)
 
